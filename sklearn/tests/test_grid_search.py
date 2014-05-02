@@ -256,7 +256,8 @@ def test_grid_search_iid():
     # take weighted average
     assert_almost_equal(first.mean_validation_score,
                         1 * 1. / 4. + 1. / 3. * 3. / 4.)
-
+    assert first.cv_train_scores is None
+    
     # once with iid=False
     grid_search = GridSearchCV(svm, param_grid={'C': [1, 10]}, cv=cv,
                                iid=False)
@@ -613,7 +614,7 @@ def test_grid_search_with_multioutput_data():
     for est in estimators:
         grid_search = GridSearchCV(est, est_parameters, cv=cv)
         grid_search.fit(X, y)
-        for parameters, _, cv_validation_scores in grid_search.grid_scores_:
+        for parameters, _, cv_validation_scores, _ in grid_search.grid_scores_:
             est.set_params(**parameters)
 
             for i, (train, test) in enumerate(cv):
@@ -626,7 +627,7 @@ def test_grid_search_with_multioutput_data():
     for est in estimators:
         random_search = RandomizedSearchCV(est, est_parameters, cv=cv)
         random_search.fit(X, y)
-        for parameters, _, cv_validation_scores in random_search.grid_scores_:
+        for parameters, _, cv_validation_scores, _ in random_search.grid_scores_:
             est.set_params(**parameters)
 
             for i, (train, test) in enumerate(cv):
@@ -639,7 +640,7 @@ def test_grid_search_with_multioutput_data():
     for est in estimators:
         random_search = RandomizedSearchCV(est, est_parameters, cv=cv)
         random_search.fit(X, y)
-        for parameters, _, cv_validation_scores in random_search.grid_scores_:
+        for parameters, _, cv_validation_scores, _ in random_search.grid_scores_:
             est.set_params(**parameters)
 
             for i, (train, test) in enumerate(cv):
@@ -668,3 +669,34 @@ def test_grid_search_allows_nans():
         ('classifier', MockClassifier()),
     ])
     gs = GridSearchCV(p, {'classifier__foo_param': [1, 2, 3]}, cv=2).fit(X, y)
+
+
+def test_return_train_scores():
+    # test that return_train_scores works correctly
+    np.random.seed(42)
+    X = np.arange(20).reshape(5, -1)
+    y = np.array([0, 0, 1, 1, 1])
+    clf = LinearSVC()
+    cv = StratifiedKFold(y, n_folds=2)
+    
+    grid = GridSearchCV(clf, {}, cv=cv, return_train_scores=False)
+    grid.fit(X, y)
+    first_notrain = grid.grid_scores_[0]
+    assert_true(first_notrain.cv_train_scores is None)
+
+    grid = GridSearchCV(clf, {}, cv=cv, return_train_scores=True)
+    grid.fit(X, y)
+    first_train = grid.grid_scores_[0]
+
+    assert_array_equal(
+        first_notrain.cv_validation_scores,
+        first_train.cv_validation_scores)
+
+    for i, (train, test) in enumerate(cv):
+        clf.fit(X[train], y[train])
+        test_score = clf.score(X[test], y[test])
+        train_score = clf.score(X[train], y[train])
+        
+        assert_equal(first_train.cv_train_scores[i], train_score)
+        assert_equal(first_train.cv_validation_scores[i], test_score)
+        
