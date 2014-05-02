@@ -256,8 +256,8 @@ def test_grid_search_iid():
     # take weighted average
     assert_almost_equal(first.mean_validation_score,
                         1 * 1. / 4. + 1. / 3. * 3. / 4.)
-    assert first.cv_train_scores is None
-    
+    assert_true(first.cv_train_scores is None)
+
     # once with iid=False
     grid_search = GridSearchCV(svm, param_grid={'C': [1, 10]}, cv=cv,
                                iid=False)
@@ -678,7 +678,7 @@ def test_return_train_scores():
     y = np.array([0, 0, 1, 1, 1])
     clf = LinearSVC()
     cv = StratifiedKFold(y, n_folds=2)
-    
+
     grid = GridSearchCV(clf, {}, cv=cv, return_train_scores=False)
     grid.fit(X, y)
     first_notrain = grid.grid_scores_[0]
@@ -696,7 +696,7 @@ def test_return_train_scores():
         clf.fit(X[train], y[train])
         test_score = clf.score(X[test], y[test])
         train_score = clf.score(X[train], y[train])
-        
+
         assert_equal(first_train.cv_train_scores[i], train_score)
         assert_equal(first_train.cv_validation_scores[i], test_score)
-        
+

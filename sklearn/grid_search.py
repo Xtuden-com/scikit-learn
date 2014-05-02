@@ -406,7 +406,7 @@ class BaseSearchCV(six.with_metaclass(ABCMeta, BaseEstimator,
                         _, parameters = items
                 else:
                     this_score, this_n_test_samples, _, parameters = items
-                    
+
                 all_scores.append(this_score)
                 if self.return_train_scores:
                     all_train_scores.append(this_train_score)
